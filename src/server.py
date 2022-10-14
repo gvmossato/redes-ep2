@@ -6,8 +6,6 @@ from stegano import lsb
 
 HOST = '127.0.0.1'
 PORT = 50007
-IMG_FILENAME = 'img.png'
-SECRET = 'PMR3421'
 
 
 def img2bytes(image, format):
@@ -24,9 +22,6 @@ def parse_msg(byte_str):
     return client_msg, image_path, secret
 
 
-img_path = f"assets\\{IMG_FILENAME}"
-
-
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.bind((HOST, PORT))
     s.listen(1)
@@ -35,14 +30,16 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
     while True:
         conn, addr = s.accept()
-        received_data = conn.recv(1024)
 
-        client_msg, image_path, secret = parse_msg(received_data)
-        print(f"Message received from client {addr[0]}:{addr[1]}:\n{client_msg}\n")
+        with conn:
+            received_data = conn.recv(1024)
 
-        img_format = image_path.split('.')[-1]
-        send_data = img2bytes(lsb.hide(image_path, secret), img_format)
+            client_msg, image_path, secret = parse_msg(received_data)
+            print(f"Message received from client {addr[0]}:{addr[1]}:\n{client_msg}\n")
 
-        conn.sendall(send_data)
-        conn.shutdown(socket.SHUT_RDWR)
-        conn.close()
+            img_format = image_path.split('.')[-1]
+            send_data = img2bytes(lsb.hide(image_path, secret), img_format)
+
+            conn.sendall(send_data)
+            conn.shutdown(socket.SHUT_RDWR)
+            conn.close()

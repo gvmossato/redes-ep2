@@ -1,7 +1,6 @@
 import argparse
 import socket
 import io
-import string
 
 from stegano import lsb
 
@@ -30,13 +29,13 @@ def get_cmd_args():
 
 
 output_path = './assets/secret-img.png'
-args = get_cmd_args()
+cmd_args = get_cmd_args()
 
 
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s: # IPv4 and TCP
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.connect((HOST, PORT))
 
-    send_data = str.encode(f"STEGANO {args.image}\n{args.secret}")
+    send_data = str.encode(f"STEGANO {cmd_args.image}\n{cmd_args.secret}")
     s.send(send_data)
 
     received_data = s.recv(int(1e7)) # Images up to 10 MB
