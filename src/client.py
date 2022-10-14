@@ -7,6 +7,7 @@ from stegano import lsb
 
 HOST = '127.0.0.1'
 PORT = 50007
+SEG_SIZE = 1024
 
 
 def get_cmd_args():
@@ -30,19 +31,25 @@ def get_cmd_args():
 
 output_path = './assets/secret-img.png'
 cmd_args = get_cmd_args()
+send_data = str.encode(f"STEGANO {cmd_args.image}\n{cmd_args.secret}")
 
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    s.connect((HOST, PORT))
+buffer = bytearray()
+received_pack = None
+num_received = 0
 
-    send_data = str.encode(f"STEGANO {cmd_args.image}\n{cmd_args.secret}")
-    s.send(send_data)
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+s.sendto(send_data, (HOST, PORT))
 
-    received_data = s.recv(int(1e7)) # Images up to 10 MB
+while received_pack != b"EOF":
+    received_pack, addr = s.recvfrom(SEG_SIZE)
+    buffer.extend(received_pack)
+    num_received += 1
+    print(f'Received {num_received} packets from {addr[0]}:{addr[1]}', end='\r')
 
-    with io.open(output_path, "wb") as steganography:
-        steganography.write(received_data)
+with io.open(output_path, "wb") as steganography:
+    steganography.write(buffer)
 
-    s.shutdown(socket.SHUT_RDWR)
-    s.close()
+s.shutdown(socket.SHUT_RDWR)
+s.close()
 
-print('Revealed secret:', lsb.reveal(output_path))
+print('\n\nRevealed secret:', lsb.reveal(output_path))
