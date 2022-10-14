@@ -35,7 +35,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             received_data = conn.recv(1024)
 
             client_msg, image_path, secret = parse_msg(received_data)
-            print(f"Message received from client {addr[0]}:{addr[1]}:\n{client_msg}\n")
+            print(
+                f"Message received from client {addr[0]}:{addr[1]}:\n{client_msg}\n")
 
             img_format = image_path.split('.')[-1]
             send_data = img2bytes(lsb.hide(image_path, secret), img_format)

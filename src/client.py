@@ -31,7 +31,6 @@ def get_cmd_args():
 output_path = './assets/secret-img.png'
 cmd_args = get_cmd_args()
 
-
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.connect((HOST, PORT))
 
@@ -40,8 +39,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
     received_data = s.recv(int(1e7)) # Images up to 10 MB
 
-    with io.open(output_path, "wb") as download_img:
-        download_img.write(received_data)
+    with io.open(output_path, "wb") as steganography:
+        steganography.write(received_data)
 
     s.shutdown(socket.SHUT_RDWR)
     s.close()
