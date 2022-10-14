@@ -17,4 +17,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s: # IPv4 and TCP
     with io.open(output_path, "wb") as download_img:
         download_img.write(data)
 
+    s.shutdown(socket.SHUT_RDWR)
+    s.close()
+
 print('Segredo revelado:', lsb.reveal(output_path))
