@@ -28,6 +28,15 @@ def get_cmd_args():
     )
     return parser.parse_args()
 
+def update_num_received(curr_num_received, from_addr, verbose=True):
+    curr_num_received += 1
+    if verbose:
+        print(
+            f'Received {curr_num_received} packets from {from_addr[0]}:{from_addr[1]}',
+            end='\r'
+        )
+    return curr_num_received
+
 
 output_path = './assets/secret-img.png'
 cmd_args = get_cmd_args()
@@ -41,10 +50,9 @@ s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 s.sendto(send_data, (HOST, PORT))
 
 while received_pack != b"EOF":
-    received_pack, addr = s.recvfrom(SEG_SIZE)
+    received_pack, server_addr = s.recvfrom(SEG_SIZE)
     buffer.extend(received_pack)
-    num_received += 1
-    print(f'Received {num_received} packets from {addr[0]}:{addr[1]}', end='\r')
+    num_received = update_num_received(num_received, server_addr)
 
 with io.open(output_path, "wb") as steganography:
     steganography.write(buffer)
