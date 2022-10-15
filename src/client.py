@@ -1,15 +1,26 @@
+# ======== #
+# Packages #
+# ======== #
+
 import argparse
 import socket
 import io
 
 from stegano import lsb
 
+# ======= #
+# Globals #
+# ======= #
 
 HOST = '127.0.0.1'
 PORT = 50007
+
 SEG_SIZE = 1024
 INT_SIZE = 2
 
+# ========= #
+# Functions #
+# ========= #
 
 def get_cmd_args():
     parser = argparse.ArgumentParser()
@@ -29,34 +40,34 @@ def get_cmd_args():
     )
     return parser.parse_args()
 
-def byte2int(data):
+def bytes2int(data):
     return int.from_bytes(data, 'big')
 
+# ====== #
+# Script #
+# ====== #
 
 output_path = './assets/secret-img.png'
 cmd_args = get_cmd_args()
-send_msg_data = str.encode(f"STEGANO {cmd_args.image}\n{cmd_args.secret}")
-
+send_msg_bytes = str.encode(f"STEGANO {cmd_args.image}\n{cmd_args.secret}")
 
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-s.sendto(send_msg_data, (HOST, PORT))
+s.sendto(send_msg_bytes, (HOST, PORT))
 
-buffer_size_data, server_addr = s.recvfrom(INT_SIZE) # 2 bytes for interger
-buffer_size = byte2int(buffer_size_data)
-buffer = bytearray(buffer_size*SEG_SIZE)
+num_segs_bytes, server_addr = s.recvfrom(INT_SIZE)
+num_segs = bytes2int(num_segs_bytes)
+buffer = bytearray(num_segs * SEG_SIZE)
 
-for i in range(buffer_size):
-    received_pack, server_addr = s.recvfrom(INT_SIZE+SEG_SIZE) # Accounts for sequence number + image data packet
-    received_sequence_num_data = received_pack[:INT_SIZE]
-    received_image_data = received_pack[INT_SIZE:]
+for i in range(num_segs):
+    recv_seg, server_addr = s.recvfrom(INT_SIZE + SEG_SIZE) # Sequence number + Image data
+    seq_num = bytes2int(recv_seg[:INT_SIZE])
+    image_bytes = recv_seg[INT_SIZE:]
 
-    integer_rec = byte2int(received_sequence_num_data)
-
-
-    buffer[integer_rec*SEG_SIZE:integer_rec*SEG_SIZE+SEG_SIZE] = received_image_data
+    buffer_start_pos = seq_num * SEG_SIZE
+    buffer[buffer_start_pos : buffer_start_pos+SEG_SIZE] = image_bytes
 
     print(
-        f'Received {i+1}/{buffer_size} packets from {server_addr[0]}:{server_addr[1]}',
+        f'Received {i+1}/{num_segs} packets from {server_addr[0]}:{server_addr[1]}',
         end='\r'
     )
 
