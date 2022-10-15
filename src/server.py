@@ -8,6 +8,7 @@ from stegano import lsb
 HOST = '127.0.0.1'
 PORT = 50007
 SEG_SIZE = 1024
+INT_SIZE = 2
 
 
 def img2bytes(image, format):
@@ -26,14 +27,8 @@ def parse_msg(byte_arr):
 def gen_packets(byte_arr):
     return [byte_arr[i : i+SEG_SIZE] for i in range(0, len(byte_arr), SEG_SIZE)]
 
-def update_num_sent(curr_num_sent, to_addr, verbose=True):
-    curr_num_sent += 1
-    if verbose:
-        print(
-            f'Sent {curr_num_sent} packets to {to_addr[0]}:{to_addr[1]}',
-            end='\r'
-        )
-    return curr_num_sent
+def count_packets(byte_arr):
+    return (len(byte_arr) + SEG_SIZE - 1) // SEG_SIZE
 
 
 print(f'Server listening to {HOST}:{PORT}\n')
@@ -42,7 +37,7 @@ while True:
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.bind((HOST, PORT))
 
-    received_data, client_addr = s.recvfrom(1024)
+    received_data, client_addr = s.recvfrom(SEG_SIZE)
 
     client_msg, image_path, secret = parse_msg(received_data)
     print(
@@ -51,16 +46,17 @@ while True:
 
     img_format = image_path.split('.')[-1]
     send_data = img2bytes(lsb.hide(image_path, secret), img_format)
+
+    num_packets = count_packets(send_data)
     send_packets = gen_packets(send_data)
-    num_sent = 0
 
-    for packet in send_packets:
-        s.sendto(packet, client_addr)
-        num_sent = update_num_sent(num_sent, client_addr)
+    s.sendto(num_packets.to_bytes(INT_SIZE, 'big'), client_addr)
+
+    for i in range(num_packets):
+        send_packet = i.to_bytes(INT_SIZE, 'big') + send_packets[i]
+        s.sendto(send_packet, client_addr)
+        print(f'Sent {i+1}/{num_packets} packets to {client_addr[0]}:{client_addr[1]}', end='\r')
         sleep(1e-3) # Arbitrary amount of time: prevents server and client desync on send-receive
-
-    s.sendto(b"EOF", client_addr) # End-Of-File bytearray finishes transmission
-    num_sent = update_num_sent(num_sent, client_addr)
 
     s.shutdown(socket.SHUT_RDWR)
     s.close()
